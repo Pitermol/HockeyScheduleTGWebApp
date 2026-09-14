@@ -3,9 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Инициализация Telegram Web App
     const tg = window.Telegram.WebApp;
     tg.expand(); 
-    setTimeout(() => {
-        scrollToActiveDate(false);
-    }, 50);
     tg.ready();
     
     // Устанавливаем цвет шапки Telegram в цвет нашего фона
@@ -142,11 +139,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- Плавное переключение и центровка ---
-    function updateSelectedDate(dateStr) {
+    function updateSelectedDate(dateStr, smooth = true) {
         currentDateObj = new Date(dateStr);
         let activeBtn = document.querySelector(`.date-item[data-date="${dateStr}"]`);
         
-        // Если дату выбрали через календарь и её вообще нет в нашем DOM — перерисовываем
         if (!activeBtn) {
             initDateStrip(currentDateObj);
             activeBtn = document.querySelector(`.date-item[data-date="${dateStr}"]`);
@@ -155,14 +151,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll('.date-item').forEach(el => el.classList.remove('active'));
         activeBtn.classList.add('active');
         
-        // Прокручиваем полоску плавно к выбранной дате
-        const scrollPosition = activeBtn.offsetLeft - (stripElement.clientWidth / 2) + (activeBtn.clientWidth / 2);
-        stripElement.scrollTo({
-            left: scrollPosition,
-            behavior: 'smooth'
-        });
+        // Центруем выбранную дату
+        scrollToActiveDate(smooth);
 
-        // Загружаем матчи (эту функцию не трогаем, она у тебя уже есть)
         loadMatches(dateStr, state.currentLeague);
     }
 
@@ -191,25 +182,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // --- Запуск приложения ---
-    initDateStrip(actualToday);
-    updateSelectedDate(getFormattedDate(actualToday));
-
     function scrollToActiveDate(smooth = false) {
-        const container = document.querySelector('.dates-container'); // селектор ленты с датами
-        const activeItem = container?.querySelector('.date-item.active'); // селектор активной даты
+        const container = document.getElementById('date-strip');
+        const activeItem = container?.querySelector('.date-item.active');
 
         if (!container || !activeItem) return;
 
-    // Вычисляем позицию, чтобы элемент встал строго по центру контейнера
-        const containerWidth = container.offsetWidth;
-        const itemWidth = activeItem.offsetWidth;
-        const itemLeft = activeItem.offsetLeft;
-
-        const targetScrollLeft = itemLeft - (containerWidth / 2) + (itemWidth / 2);
+        // Считаем позицию так, чтобы центр активного элемента совпал с центром контейнера
+        const scrollPosition = activeItem.offsetLeft - (container.clientWidth / 2) + (activeItem.clientWidth / 2);
 
         container.scrollTo({
-            left: targetScrollLeft,
+            left: scrollPosition,
             behavior: smooth ? 'smooth' : 'auto'
         });
     }
@@ -217,7 +200,6 @@ document.addEventListener("DOMContentLoaded", () => {
     async function fetchHockeyMatches(dateStr, leagueStr) {
         const cacheKey = `${dateStr}_${leagueStr}`;
         const url = `https://api.khhljkmnbh.ru:8443/api/matches?date=${dateStr}&league=${leagueStr}`;
-        const url1 = `http://193.93.252.110/api/matches?date=${dateStr}&league=${leagueStr}`;
         // Если данные есть в кэше, отдаем их сразу!
         if (matchCache.has(cacheKey)) {
             return matchCache.get(cacheKey);
@@ -330,10 +312,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // Запускаем при старте
     // renderDateStrip(currentDateObj);
     //loadMatches(getFormattedDate(currentDateObj), 'ALL');
-    requestAnimationFrame(() => {
-    // Двойной RAF гарантирует, что браузер завершил Layout и Paint
-        requestAnimationFrame(() => {
-            scrollToActiveDate(false);
-        });
-    });
+    // --- Запуск приложения ---
+    initDateStrip(actualToday);
+    
+    // Выбираем сегодня БЕЗ плавной анимации (чтобы не триггерить ложные скролл-ивенты на старте)
+    updateSelectedDate(getFormattedDate(actualToday), false);
+
+    // Даем Telegram Web App и CSS 50 миллисекунд, чтобы завершить верстку и расчет ширины экрана
+    setTimeout(() => {
+        scrollToActiveDate(false);
+    }, 60);
 });
