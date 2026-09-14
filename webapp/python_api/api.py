@@ -1,3 +1,4 @@
+import time
 import uvicorn
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,9 +20,20 @@ app.add_middleware(
 
 # Инициализируем клиент; ключи API не требуются для публичных эндпоинтов
 nhl = NHLClient() #[cite: 1]
+CACHE = {}
+CACHE_TTL = 300
 
 @app.get("/api/matches")
-async def get_matches(date: str = Query("0"), league: str = Query("ALL")):
+def get_matches(date: str = Query("0"), league: str = Query("ALL")):
+    # 1. Генерируем уникальный ключ для даты и лиги
+    cache_key = f"{date}_{league}"
+    
+    # 2. Если данные уже есть в кэше и они свежие - отдаем моментально!
+    if cache_key in CACHE:
+        data, saved_time = CACHE[cache_key]
+        if time.time() - saved_time < CACHE_TTL:
+            return data
+
     # 1. Преобразуем -1, 0, 1 в реальные даты для API
     if date in ["-1", "0", "1"]:
         target_date = datetime.utcnow() + timedelta(days=int(date))
@@ -36,7 +48,6 @@ async def get_matches(date: str = Query("0"), league: str = Query("ALL")):
     if league in ["NHL", "ALL"]:
         # Получаем данные о счете для конкретной даты YYYY-MM-DD[cite: 1]
         raw_data = nhl.get_score(date_str) #[cite: 1]
-        
         # Обычно матчи лежат в корневом ключе 'games' или внутри 'gameWeek'
         games_list = raw_data.get("games", [])
         if not games_list and "gameWeek" in raw_data:
@@ -80,7 +91,7 @@ async def get_matches(date: str = Query("0"), league: str = Query("ALL")):
 
     # TODO: Добавить аналогичный блок для парсера КХЛ, 
     # а затем сделать матчам matches.extend(khl_matches)
-
+    CACHE[cache_key] = ({"status": "success", "matches": matches}, time.time())
     return {"status": "success", "matches": matches}
 
 # --- Эндпоинты на будущее для страницы профиля и прогнозов ---

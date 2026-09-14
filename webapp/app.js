@@ -1,7 +1,11 @@
+let currentController = null;
 document.addEventListener("DOMContentLoaded", () => {
     // Инициализация Telegram Web App
     const tg = window.Telegram.WebApp;
     tg.expand(); 
+    setTimeout(() => {
+        scrollToActiveDate(false);
+    }, 50);
     tg.ready();
     
     // Устанавливаем цвет шапки Telegram в цвет нашего фона
@@ -191,18 +195,36 @@ document.addEventListener("DOMContentLoaded", () => {
     initDateStrip(actualToday);
     updateSelectedDate(getFormattedDate(actualToday));
 
-    // --- Модифицированный fetch с кэшированием ---
+    function scrollToActiveDate(smooth = false) {
+        const container = document.querySelector('.dates-container'); // селектор ленты с датами
+        const activeItem = container?.querySelector('.date-item.active'); // селектор активной даты
+
+        if (!container || !activeItem) return;
+
+    // Вычисляем позицию, чтобы элемент встал строго по центру контейнера
+        const containerWidth = container.offsetWidth;
+        const itemWidth = activeItem.offsetWidth;
+        const itemLeft = activeItem.offsetLeft;
+
+        const targetScrollLeft = itemLeft - (containerWidth / 2) + (itemWidth / 2);
+
+        container.scrollTo({
+            left: targetScrollLeft,
+            behavior: smooth ? 'smooth' : 'auto'
+        });
+    }
+
     async function fetchHockeyMatches(dateStr, leagueStr) {
         const cacheKey = `${dateStr}_${leagueStr}`;
-        const url = `http://127.0.0.1:8000/api/matches?date=${dateStr}&league=${leagueStr}`;
-        
+        const url = `https://api.khhljkmnbh.ru:8443/api/matches?date=${dateStr}&league=${leagueStr}`;
+        const url1 = `http://193.93.252.110/api/matches?date=${dateStr}&league=${leagueStr}`;
         // Если данные есть в кэше, отдаем их сразу!
         if (matchCache.has(cacheKey)) {
             return matchCache.get(cacheKey);
         }
 
         try {
-            const response = await fetch(url);
+	    const response = await fetch(url, { cache: 'no-store' });
             if (!response.ok) throw new Error("HTTP error");
             const data = await response.json();
             
@@ -213,9 +235,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             return [];
         } catch (error) {
-            console.error(error);
-            return [];
-        }
+	    console.log(error);
+	    return [];
+	}
     }
 
     // --- Слежение за скроллом (Intersection Observer) ---
@@ -307,5 +329,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Запускаем при старте
     // renderDateStrip(currentDateObj);
-    loadMatches(getFormattedDate(currentDateObj), 'ALL');
+    //loadMatches(getFormattedDate(currentDateObj), 'ALL');
+    requestAnimationFrame(() => {
+    // Двойной RAF гарантирует, что браузер завершил Layout и Paint
+        requestAnimationFrame(() => {
+            scrollToActiveDate(false);
+        });
+    });
 });

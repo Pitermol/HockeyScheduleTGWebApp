@@ -43,7 +43,7 @@ class NHLClient:
 
     def __init__(
         self,
-        timeout: float = 20.0,
+        timeout: float = 3.0,
         retries: int = 3,
         session: Optional[requests.Session] = None,
     ):
@@ -61,7 +61,6 @@ class NHLClient:
 
     def _get(self, url: str, params: Optional[Dict[str, Any]] = None) -> Any:
         last_error = None
-
         for attempt in range(self.retries):
             try:
                 response = self.session.get(
@@ -73,6 +72,7 @@ class NHLClient:
                 return response.json()
             except (requests.RequestException, ValueError) as exc:
                 last_error = exc
+                return {}
                 if attempt < self.retries - 1:
                     continue
 
