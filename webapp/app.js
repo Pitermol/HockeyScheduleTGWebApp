@@ -199,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function fetchHockeyMatches(dateStr, leagueStr) {
         const cacheKey = `${dateStr}_${leagueStr}`;
-        const url = `https://api.khhljkmnbh.ru:8443/api/matches?date=${dateStr}&league=${leagueStr}`;
+        const url = `https://khhljkmnbh.ru:8443/api/matches?date=${dateStr}&league=${leagueStr}`;
         // Если данные есть в кэше, отдаем их сразу!
         if (matchCache.has(cacheKey)) {
             return matchCache.get(cacheKey);

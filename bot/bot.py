@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder
 TOKEN = "8961326536:AAH-PhP40fMvTYO1pCvRnIRaYtkWH6h2hEo"
 
 # Сюда вставь HTTPS ссылку на твой index.html
-WEBAPP_URL = "https://khhljkmnbh.ru/"
+WEBAPP_URL = "https://khhljkmnbh.ru:8443"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
